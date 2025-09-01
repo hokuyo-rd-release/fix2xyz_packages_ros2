@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>fix2xyz</name>
+  <version>0.0.0</version>
+  <description>The fix2xyz package</description>
+  <maintainer email="ubuntu@todo.todo">ubuntu</maintainer>
+  <license>TODO</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <build_depend>rclcpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>tf2</build_depend>
+  <build_depend>tf2_ros</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>fix_msgs</build_depend>
+  <build_depend>Eigen3</build_depend>
+  <build_depend>PROJ</build_depend>
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>tf2</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>fix_msgs</exec_depend>
+  <exec_depend>Eigen3</exec_depend>
+  <exec_depend>PROJ</exec_depend>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
