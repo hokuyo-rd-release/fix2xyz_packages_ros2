@@ -141,24 +141,26 @@ XYZLLATransNode::XYZLLATransNode()
   this->declare_parameter<std::string>("pub_fix_topic3", "fix/from_posecov3");
 
   this->declare_parameter<std::string>("map_frame", "map");
-  this->declare_parameter<int>("epsg_code_num", 0);
+  this->declare_parameter<int>("epsg_code_num", -1);
   this->declare_parameter<std::string>("origin_pose", "");
   this->declare_parameter<std::string>("origin_quat", "");
   this->declare_parameter<std::string>("origin_quat_inv", "");
 
   // Get parameters
-  sub_odom_topic1 = this->get_parameter("sub_odom_topic1").as_string();
-  sub_pose_topic2 = this->get_parameter("sub_pose_topic2").as_string();
-  sub_posecov_topic3 = this->get_parameter("sub_posecov_topic3").as_string();
+  this->get_parameter("sub_odom_topic1", sub_odom_topic1);
+  this->get_parameter("sub_pose_topic2", sub_pose_topic2);
+  this->get_parameter("sub_posecov_topic3", sub_posecov_topic3);
 
-  pub_fix_topic1 = this->get_parameter("pub_fix_topic1").as_string();
-  pub_fix_topic2 = this->get_parameter("pub_fix_topic2").as_string();
-  pub_fix_topic3 = this->get_parameter("pub_fix_topic3").as_string();
+  this->get_parameter("pub_fix_topic1", pub_fix_topic1);
+  this->get_parameter("pub_fix_topic2", pub_fix_topic2);
+  this->get_parameter("pub_fix_topic3", pub_fix_topic3);
 
-  map_frame = this->get_parameter("map_frame").as_string();
-  epsg_code_num = this->get_parameter("epsg_code_num").as_int();
+  this->get_parameter("map_frame", map_frame);
+  this->get_parameter("epsg_code_num", epsg_code_num);
 
-  l_u_transformer.set_epsg_code(epsg_code_num);
+  if(epsg_code_num != -1) {
+    l_u_transformer.set_epsg_code(epsg_code_num);
+  }
 
   fix_xyz_trans::LatLonAlt origin_latlonalt_;
   Eigen::Vector4d origin_quat_;

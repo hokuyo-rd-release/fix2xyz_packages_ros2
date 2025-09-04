@@ -49,7 +49,12 @@ void LLAXYZTrans::set_origin(fix_xyz_trans::LatLonAlt orig_pose_, Eigen::Vector4
         epsg_code = utm_zone_to_epsg(utm_zone);
         set_epsg_flg = true;
     }
-
+    std::cout << "epsg_code : " << epsg_code << std::endl;
+    std::cout << "origin pose (lat, lon, alt) : "
+              << orig_pose.latitude << ", "
+              << orig_pose.longitude << ", "
+              << orig_pose.altitude << std::endl;
+    std::cout << "Rotation matrix from quaternion : \n" << orig_R << std::endl;
     PJ_CONTEXT *C_orig;
     PJ *P_orig;
     PJ *norm_orig;
@@ -67,6 +72,7 @@ void LLAXYZTrans::set_origin(fix_xyz_trans::LatLonAlt orig_pose_, Eigen::Vector4
     proj_destroy(P_orig);
     proj_context_destroy(C_orig);
     set_origin_vector_flg = true;
+    std::cout << std::fixed << "Origin vector in " << epsg_code << " : \n" << orig_vec << std::endl;
 }
 
 // 基本つかわない.

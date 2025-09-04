@@ -35,6 +35,9 @@ add_executable(xyz2fix_node
 add_executable(tf_test
   src/tf_test.cpp
 )
+add_executable(fix_odom_to_fix_orient
+  src/fix_odom_to_fix_orient.cpp
+)
 
 ament_target_dependencies(fix2xyz_node
   rclcpp
@@ -77,11 +80,19 @@ ament_target_dependencies(tf_test
   PROJ
   Eigen3
 )
+ament_target_dependencies(fix_odom_to_fix_orient
+  rclcpp
+  std_msgs
+  nav_msgs
+  sensor_msgs
+  fix_msgs
+)
 
 install(TARGETS
   fix2xyz_node
   xyz2fix_node
   tf_test
+  fix_odom_to_fix_orient
   DESTINATION lib/${PROJECT_NAME}
 )
 

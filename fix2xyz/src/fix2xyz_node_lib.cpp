@@ -187,23 +187,23 @@ LLAXYZTransNode::LLAXYZTransNode()
   tfListener(tfBuffer)
 {
   // Declare parameters with default values
-  this->declare_parameter("sub_fix_topic0", "fix0");
-  this->declare_parameter("sub_fix_topic1", "fix1");
-  this->declare_parameter("sub_fix_topic2", "fix2");
-  this->declare_parameter("sub_fix_topic3", "fix3");
+  this->declare_parameter<std::string>("sub_fix_topic0", "fix0");
+  this->declare_parameter<std::string>("sub_fix_topic1", "fix1");
+  this->declare_parameter<std::string>("sub_fix_topic2", "fix2");
+  this->declare_parameter<std::string>("sub_fix_topic3", "fix3");
 
-  this->declare_parameter("pub_odom_topic0", "odometry/from_fix0");
-  this->declare_parameter("pub_odom_topic1", "odometry/from_fix1");
-  this->declare_parameter("pub_pose_topic2", "pose/from_fix2");
-  this->declare_parameter("pub_posecov_topic3", "posecov/from_fix3");
+  this->declare_parameter<std::string>("pub_odom_topic0", "odometry/from_fix0");
+  this->declare_parameter<std::string>("pub_odom_topic1", "odometry/from_fix1");
+  this->declare_parameter<std::string>("pub_pose_topic2", "pose/from_fix2");
+  this->declare_parameter<std::string>("pub_posecov_topic3", "posecov/from_fix3");
 
-  this->declare_parameter("map_frame", "map");
-  this->declare_parameter("rot_cov", 1e9);
-  this->declare_parameter("make_angle_from_movement", false);
-  this->declare_parameter("epsg_code_num", 0);
-  this->declare_parameter("origin_pose", "");
-  this->declare_parameter("origin_quat", "");
-  this->declare_parameter("origin_quat_inv", "");
+  this->declare_parameter<std::string>("map_frame", "map");
+  this->declare_parameter<double>("rot_cov", 1e9);
+  this->declare_parameter<bool>("make_angle_from_movement", false);
+  this->declare_parameter<int>("epsg_code_num", -1);
+  this->declare_parameter<std::string>("origin_pose", "");
+  this->declare_parameter<std::string>("origin_quat", "");
+  this->declare_parameter<std::string>("origin_quat_inv", "");
 
   // Get parameters
   this->get_parameter("sub_fix_topic0", sub_fix_topic0);
@@ -220,7 +220,7 @@ LLAXYZTransNode::LLAXYZTransNode()
   this->get_parameter("rot_cov", rot_cov);
   this->get_parameter("make_angle_from_movement", make_angle_from_movement);
 
-  if (this->get_parameter("epsg_code_num", epsg_code_num)) {
+  if (epsg_code_num != -1) {
     l_u_transformer.set_epsg_code(epsg_code_num);
   }
 
