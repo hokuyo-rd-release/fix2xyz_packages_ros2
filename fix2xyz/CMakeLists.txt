@@ -20,6 +20,13 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/include"
 )
 
+add_executable(fix2utm_node
+  src/fix2utm_node.cpp
+  src/fix2utm_node_lib.cpp
+  src/fix_xyz_transform.cpp
+  src/fix_utm_transform.cpp
+)
+
 add_executable(fix2xyz_node
   src/fix2xyz_node.cpp
   src/fix2xyz_node_lib.cpp
@@ -39,6 +46,20 @@ add_executable(tf_test
 )
 add_executable(fix_odom_to_fix_orient
   src/fix_odom_to_fix_orient.cpp
+)
+
+ament_target_dependencies(fix2utm_node
+  rclcpp
+  std_msgs
+  nav_msgs
+  sensor_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  geometry_msgs
+  fix_msgs
+  PROJ
+  Eigen3
 )
 
 ament_target_dependencies(fix2xyz_node
@@ -91,6 +112,7 @@ ament_target_dependencies(fix_odom_to_fix_orient
 )
 
 install(TARGETS
+  fix2utm_node
   fix2xyz_node
   xyz2fix_node
   tf_test
