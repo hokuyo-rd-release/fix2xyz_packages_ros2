@@ -24,12 +24,14 @@ add_executable(fix2xyz_node
   src/fix2xyz_node.cpp
   src/fix2xyz_node_lib.cpp
   src/fix_xyz_transform.cpp
+  src/fix_utm_transform.cpp
 )
 
 add_executable(xyz2fix_node
   src/xyz2fix_node.cpp
   src/xyz2fix_node_lib.cpp
   src/fix_xyz_transform.cpp
+  src/fix_utm_transform.cpp
 )
 
 add_executable(tf_test

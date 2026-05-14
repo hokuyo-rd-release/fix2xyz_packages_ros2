@@ -2,6 +2,9 @@
 #include "fix_xyz_transform.h"
 
 
+using namespace fix_xyz_trans;
+using namespace fix_utm_trans;
+
 
 // クォータニオンから回転行列を計算する関数.
 Eigen::Matrix3d RotMatFromQuat(const Eigen::Vector4d& quat){
@@ -25,117 +28,49 @@ Eigen::Matrix4d QuatMatFromQuat(const Eigen::Vector4d& quat){
 }
 
 
-using namespace fix_xyz_trans;
 
-int LLAXYZTrans::judge_utm_zone(double longitude){
-    //経度を6で割って切り上げ.
-    int zone = (int)(longitude + 180.0 + 5 )/6;
-    return zone;
+LLAXYZTrans::LLAXYZTrans() : lla_utm_transformer(true) {
+    set_origin_flg = false;
+    set_origin_vector_flg = false;
+    orig_R = Eigen::Matrix3d::Identity();
+    orig_Q = Eigen::Matrix4d::Identity();
+}
+LLAXYZTrans::~LLAXYZTrans() {
 }
 
-std::string LLAXYZTrans::utm_zone_to_epsg(int utm_zone){
-    int epsg_num = utm_zone + 32600;
-    return "EPSG:" + std::to_string(epsg_num);
-}
-
-
-void LLAXYZTrans::set_origin(fix_xyz_trans::LatLonAlt orig_pose_, Eigen::Vector4d orig_quat_){
+void LLAXYZTrans::set_origin(LatLonAlt orig_lla_, Eigen::Vector4d orig_quat_){
     set_origin_flg = true;
-    orig_pose = orig_pose_;
+    orig_lla = orig_lla_;
     orig_R = RotMatFromQuat(orig_quat_);
     orig_Q = QuatMatFromQuat(orig_quat_);
-    int utm_zone = judge_utm_zone(orig_pose_.longitude);
-    if(utm_zone > 0 && utm_zone <=60){
-        epsg_code = utm_zone_to_epsg(utm_zone);
-        set_epsg_flg = true;
-    }
-    std::cout << "epsg_code : " << epsg_code << std::endl;
-    std::cout << "origin pose (lat, lon, alt) : "
-              << orig_pose.latitude << ", "
-              << orig_pose.longitude << ", "
-              << orig_pose.altitude << std::endl;
-    std::cout << "Rotation matrix from quaternion : \n" << orig_R << std::endl;
-    PJ_CONTEXT *C_orig;
-    PJ *P_orig;
-    PJ *norm_orig;
-    PJ_COORD a_orig, b_orig;
-    C_orig = proj_context_create();
-    P_orig = proj_create_crs_to_crs( C_orig, "EPSG:4326", epsg_code.c_str() , NULL);
-    a_orig = proj_coord(orig_pose.latitude, orig_pose.longitude, 0, 0);
-    b_orig = proj_trans(P_orig, PJ_FWD, a_orig);
 
-    orig_vec(0) = b_orig.xy.x;
-    orig_vec(1) = b_orig.xy.y;
-    orig_vec(2) = orig_pose.altitude;
-    DEBUG_PRINT(orig_vec);
-    
-    proj_destroy(P_orig);
-    proj_context_destroy(C_orig);
+    UTM orig_utm = lla_utm_transformer.get_utm_from_latlonalt(orig_lla);
+    orig_xyz << orig_utm.x, orig_utm.y, orig_utm.z;
+    utm_zone = orig_utm.zone;
+    DEBUG_PRINT(orig_xyz);
+
     set_origin_vector_flg = true;
-    std::cout << std::fixed << "Origin vector in " << epsg_code << " : \n" << orig_vec << std::endl;
-}
-
-// 基本つかわない.
-void LLAXYZTrans::set_epsg_code(int epsg_code_num){
-    epsg_code = "EPSG:" + std::to_string(epsg_code_num);
-    set_epsg_flg = true;
+    std::cout << std::fixed << "Origin vector in utm_" << utm_zone << " : \n" << orig_xyz << std::endl;
 }
 
 Eigen::Vector3d LLAXYZTrans::get_xyz_from_latlonalt(LatLonAlt latlonalt){
     std::string fix_debug_msg = "get_fix";
     DEBUG_PRINT(fix_debug_msg);
 
+    UTM utm;
     Eigen::Vector3d xyz = Eigen::Vector3d::Zero();
     
     int utm_zone;
-    PJ_CONTEXT *C;
-    PJ *P;
-    PJ *norm;
-    PJ_COORD a, b;
-
-    if(!set_epsg_flg){
-        utm_zone = judge_utm_zone(latlonalt.longitude);
-        if(utm_zone > 0 && utm_zone <=60){
-            epsg_code = utm_zone_to_epsg(utm_zone);
-            set_epsg_flg = true;
-        }
-        else{
-            return xyz;
-        }
-    }
 
     if(!set_origin_flg || !set_origin_vector_flg){
-        return xyz;
-    }
-
-    DEBUG_PRINT(epsg_code);
-    DEBUG_PRINT(latlonalt.latitude);
-    DEBUG_PRINT(latlonalt.longitude);
-
-    C = proj_context_create();
-    P = proj_create_crs_to_crs( C, "EPSG:4326", epsg_code.c_str() , NULL);
-    if (0 == P) {
         double inf = std::numeric_limits<double>::infinity();
         xyz << inf, inf, inf;
-    }
-    else{
-        a = proj_coord(latlonalt.latitude, latlonalt.longitude, 0, 0);
-        b = proj_trans(P, PJ_FWD, a);
-
-        xyz(0) = b.xy.x;
-        xyz(1) = b.xy.y;
-        xyz(2) = latlonalt.altitude;
+        return xyz;
     }
     
-    proj_destroy(P);
-    proj_context_destroy(C);
-
-    fix_debug_msg = "return xyz from fix";
-    DEBUG_PRINT(fix_debug_msg);
-
-
-    // ここで座標変換.
-    xyz = xyz - orig_vec;
+    utm = lla_utm_transformer.get_utm_from_latlonalt(latlonalt);
+    xyz << utm.x, utm.y, utm.z;
+    xyz = xyz - orig_xyz;
     xyz = orig_R * xyz;
 
     return xyz;
@@ -150,49 +85,28 @@ Pose LLAXYZTrans::get_xyz_from_latlonalt(LLAWithOrientation latlonalt){
 }
 
 LatLonAlt LLAXYZTrans::get_latlonalt_from_xyz(Eigen::Vector3d xyz){
-    std::string fix_debug_msg = "get_xy";
+    std::string fix_debug_msg = "get_xyz";
     DEBUG_PRINT(fix_debug_msg);
 
     LatLonAlt latlonalt;
-
-    PJ_CONTEXT *C;
-    PJ *P;
-    PJ *norm;
-    PJ_COORD a, b;
+    UTM utm;
 
     double inf = std::numeric_limits<double>::infinity();
-    if(!set_origin_flg || !set_epsg_flg){
+    if(!set_origin_flg){
         latlonalt.latitude = inf;
         latlonalt.longitude = inf;
         latlonalt.altitude = inf;
         return latlonalt;
     }
 
-    // ここで座標変換.
     xyz = orig_R.transpose() * xyz;
-    xyz = xyz + orig_vec;
+    xyz = xyz + orig_xyz;
+    utm.x = xyz(0);
+    utm.y = xyz(1);
+    utm.z = xyz(2);
+    utm.zone = utm_zone;
 
-    C = proj_context_create();
-    P = proj_create_crs_to_crs( C, epsg_code.c_str() , "EPSG:4326", NULL);
-
-    DEBUG_PRINT(epsg_code);
-
-    if (0 == P) {
-        latlonalt.latitude = inf;
-        latlonalt.longitude = inf;
-        latlonalt.altitude = inf;
-    }
-    else{
-        a = proj_coord(xyz(0), xyz(1), 0, 0);
-        b = proj_trans(P, PJ_FWD, a);
-
-        latlonalt.latitude = b.xyz.x;
-        latlonalt.longitude = b.xyz.y;
-        latlonalt.altitude = xyz(2);
-    }
-
-    proj_destroy(P);
-    proj_context_destroy(C);
+    latlonalt = lla_utm_transformer.get_latlonalt_from_utm(utm);
 
     fix_debug_msg = "return fix from xyz";
     DEBUG_PRINT(fix_debug_msg);
@@ -205,15 +119,4 @@ LLAWithOrientation LLAXYZTrans::get_latlonalt_from_xyz(Pose xyz){
     ret_lla.lla = get_latlonalt_from_xyz(xyz.position);
     ret_lla.orientation = orig_Q.transpose() * xyz.orientation;
     return ret_lla;
-}
-
-// 初期化処理.
-LLAXYZTrans::LLAXYZTrans() {
-    set_origin_flg = false;
-    set_epsg_flg = false ;
-    set_origin_vector_flg = false;
-    orig_R = Eigen::Matrix3d::Identity();
-    orig_Q = Eigen::Matrix4d::Identity();
-}
-LLAXYZTrans::~LLAXYZTrans() {
 }

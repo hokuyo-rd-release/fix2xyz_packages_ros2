@@ -13,20 +13,11 @@
 #include <limits>
 #include <iostream>
 #include <Eigen/Dense>
+#include "fix_utm_transform.h"
 
+using namespace fix_utm_trans;
 namespace fix_xyz_trans{
 
-    // 緯度経度を表す構造体.
-    struct LatLonAlt {
-        double latitude;
-        double longitude;
-        double altitude;
-        LatLonAlt(){
-            latitude = 0;
-            longitude = 0;
-            altitude = 0;
-        }
-    };
     // 緯度経度に角度を足した構造体.
     struct LLAWithOrientation {
         LatLonAlt lla;
@@ -47,22 +38,16 @@ namespace fix_xyz_trans{
 
     class LLAXYZTrans {
     private:
+        LLAUTMTrans lla_utm_transformer;
 
         bool set_origin_flg;
-        bool set_epsg_flg;
         bool set_origin_vector_flg;
+        int utm_zone;
 
-        std::string epsg_code;
-        LatLonAlt orig_pose;
+        LatLonAlt orig_lla;
         Eigen::Matrix3d orig_R;    // 緯度経度の基準姿勢.
         Eigen::Matrix4d orig_Q;
-        Eigen::Vector3d orig_vec;
-
-        // 経度からUTMゾーンを取得する関数.
-        int judge_utm_zone(double longitude);
-
-        // UTMゾーンをEPSGコードに変換する関数.
-        std::string utm_zone_to_epsg(int utm_zone);
+        Eigen::Vector3d orig_xyz;
         
     protected:
 
@@ -72,12 +57,10 @@ namespace fix_xyz_trans{
         Eigen::Vector3d get_xyz_from_latlonalt(LatLonAlt latlonalt);
         Pose get_xyz_from_latlonalt(LLAWithOrientation latlonalt);
 
-        // UTMゾーンとUTM座標から緯度経度を求める関数.
         LatLonAlt get_latlonalt_from_xyz(Eigen::Vector3d xyz);
         LLAWithOrientation get_latlonalt_from_xyz(Pose xyz);
 
-        void set_epsg_code(int epsg_code_num);
-        void set_origin( LatLonAlt orig_pose_, Eigen::Vector4d orig_quat_ );
+        void set_origin( LatLonAlt orig_lla_, Eigen::Vector4d orig_quat_ );
 
         LLAXYZTrans();
         ~LLAXYZTrans();

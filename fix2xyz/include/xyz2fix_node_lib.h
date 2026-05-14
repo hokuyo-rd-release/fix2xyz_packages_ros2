@@ -1,5 +1,5 @@
-#ifndef LATLON_UTM_TRANS_NODE
-#define LATLON_UTM_TRANS_NODE
+#ifndef XYZ_FIX_TRANS_NODE
+#define XYZ_FIX_TRANS_NODE
 
 #ifdef DEBUG_MODE
 #define DEBUG_PRINT(A) std::cout << (#A) << " : " << (A) << std::endl;
@@ -23,7 +23,7 @@ using namespace fix_xyz_trans;
 
 class XYZLLATransNode : public rclcpp::Node {
 private:
-  LLAXYZTrans l_u_transformer;
+  LLAXYZTrans lla_xyz_transformer;
   tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener;
 
@@ -48,8 +48,6 @@ private:
   std::string origin_pose_str;
   std::string origin_quat_str;
   std::string map_frame;
-
-  int epsg_code_num;
 
 public:
   void odom_callback1(const nav_msgs::msg::Odometry::SharedPtr msg);

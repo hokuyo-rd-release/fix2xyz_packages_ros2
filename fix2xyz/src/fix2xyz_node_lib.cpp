@@ -1,4 +1,4 @@
-#define DEBUG_MODE
+// #define DEBUG_MODE
 #include "fix2xyz_node_lib.h"
 
 void LLAXYZTransNode::fix_callback0(const sensor_msgs::msg::NavSatFix::SharedPtr msg) {
@@ -7,13 +7,13 @@ void LLAXYZTransNode::fix_callback0(const sensor_msgs::msg::NavSatFix::SharedPtr
 
   nav_msgs::msg::Odometry ret_msg;
   Eigen::Vector3d xyz;
-  fix_xyz_trans::LatLonAlt latlonalt;
+  LatLonAlt latlonalt;
 
   latlonalt.latitude = msg->latitude;
   latlonalt.longitude = msg->longitude;
   latlonalt.altitude = msg->altitude;
 
-  xyz = l_u_transformer.get_xyz_from_latlonalt(latlonalt);
+  xyz = lla_xyz_transformer.get_xyz_from_latlonalt(latlonalt);
 
   ret_msg.header = msg->header;
   ret_msg.header.frame_id = map_frame;
@@ -22,9 +22,15 @@ void LLAXYZTransNode::fix_callback0(const sensor_msgs::msg::NavSatFix::SharedPtr
   ret_msg.pose.pose.position.z = xyz(2);
   ret_msg.pose.pose.orientation.w = 1.0;
 
-  for (int i = 0; i < 9; ++i) {
-    ret_msg.pose.covariance[i] = msg->position_covariance[i];
-  }
+  ret_msg.pose.covariance[0] = msg->position_covariance[0];
+  ret_msg.pose.covariance[1] = msg->position_covariance[1];
+  ret_msg.pose.covariance[2] = msg->position_covariance[2];
+  ret_msg.pose.covariance[6] = msg->position_covariance[3];
+  ret_msg.pose.covariance[7] = msg->position_covariance[4];
+  ret_msg.pose.covariance[8] = msg->position_covariance[5];
+  ret_msg.pose.covariance[12] = msg->position_covariance[6];
+  ret_msg.pose.covariance[13] = msg->position_covariance[7];
+  ret_msg.pose.covariance[14] = msg->position_covariance[8];
   ret_msg.pose.covariance[21] = rot_cov;
   ret_msg.pose.covariance[28] = rot_cov;
   ret_msg.pose.covariance[35] = rot_cov;
@@ -62,7 +68,7 @@ void LLAXYZTransNode::fix_callback1(const fix_msgs::msg::FixWithOrientation::Sha
   lla_with_ori.lla.altitude = fix_msg.altitude;
   lla_with_ori.orientation << msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w;
 
-  pose = l_u_transformer.get_xyz_from_latlonalt(lla_with_ori);
+  pose = lla_xyz_transformer.get_xyz_from_latlonalt(lla_with_ori);
 
   ret_msg.header = fix_msg.header;
   ret_msg.header.frame_id = map_frame;
@@ -74,9 +80,15 @@ void LLAXYZTransNode::fix_callback1(const fix_msgs::msg::FixWithOrientation::Sha
   ret_msg.pose.pose.orientation.z = pose.orientation(2);
   ret_msg.pose.pose.orientation.w = pose.orientation(3);
 
-  for (int i = 0; i < 9; ++i) {
-    ret_msg.pose.covariance[i] = fix_msg.position_covariance[i];
-  }
+  ret_msg.pose.covariance[0] = fix_msg.position_covariance[0];
+  ret_msg.pose.covariance[1] = fix_msg.position_covariance[1];
+  ret_msg.pose.covariance[2] = fix_msg.position_covariance[2];
+  ret_msg.pose.covariance[6] = fix_msg.position_covariance[3];
+  ret_msg.pose.covariance[7] = fix_msg.position_covariance[4];
+  ret_msg.pose.covariance[8] = fix_msg.position_covariance[5];
+  ret_msg.pose.covariance[12] = fix_msg.position_covariance[6];
+  ret_msg.pose.covariance[13] = fix_msg.position_covariance[7];
+  ret_msg.pose.covariance[14] = fix_msg.position_covariance[8];
   ret_msg.pose.covariance[21] = rot_cov;
   ret_msg.pose.covariance[28] = rot_cov;
   ret_msg.pose.covariance[35] = rot_cov;
@@ -93,13 +105,13 @@ void LLAXYZTransNode::fix_callback2(const sensor_msgs::msg::NavSatFix::SharedPtr
 
   geometry_msgs::msg::PoseStamped ret_msg;
   Eigen::Vector3d xyz;
-  fix_xyz_trans::LatLonAlt latlonalt;
+  LatLonAlt latlonalt;
 
   latlonalt.latitude = msg->latitude;
   latlonalt.longitude = msg->longitude;
   latlonalt.altitude = msg->altitude;
 
-  xyz = l_u_transformer.get_xyz_from_latlonalt(latlonalt);
+  xyz = lla_xyz_transformer.get_xyz_from_latlonalt(latlonalt);
 
   ret_msg.header = msg->header;
   ret_msg.header.frame_id = map_frame;
@@ -136,13 +148,13 @@ void LLAXYZTransNode::fix_callback3(const sensor_msgs::msg::NavSatFix::SharedPtr
 
   geometry_msgs::msg::PoseWithCovarianceStamped ret_msg;
   Eigen::Vector3d xyz;
-  fix_xyz_trans::LatLonAlt latlonalt;
+  LatLonAlt latlonalt;
 
   latlonalt.latitude = msg->latitude;
   latlonalt.longitude = msg->longitude;
   latlonalt.altitude = msg->altitude;
 
-  xyz = l_u_transformer.get_xyz_from_latlonalt(latlonalt);
+  xyz = lla_xyz_transformer.get_xyz_from_latlonalt(latlonalt);
 
   ret_msg.header = msg->header;
   ret_msg.header.frame_id = map_frame;
@@ -151,13 +163,18 @@ void LLAXYZTransNode::fix_callback3(const sensor_msgs::msg::NavSatFix::SharedPtr
   ret_msg.pose.pose.position.z = xyz(2);
   ret_msg.pose.pose.orientation.w = 1.0;
 
-  for (int i = 0; i < 9; ++i) {
-    ret_msg.pose.covariance[i] = msg->position_covariance[i];
-  }
+  ret_msg.pose.covariance[0] = msg->position_covariance[0];
+  ret_msg.pose.covariance[1] = msg->position_covariance[1];
+  ret_msg.pose.covariance[2] = msg->position_covariance[2];
+  ret_msg.pose.covariance[6] = msg->position_covariance[3];
+  ret_msg.pose.covariance[7] = msg->position_covariance[4];
+  ret_msg.pose.covariance[8] = msg->position_covariance[5];
+  ret_msg.pose.covariance[12] = msg->position_covariance[6];
+  ret_msg.pose.covariance[13] = msg->position_covariance[7];
+  ret_msg.pose.covariance[14] = msg->position_covariance[8];
   ret_msg.pose.covariance[21] = rot_cov;
   ret_msg.pose.covariance[28] = rot_cov;
   ret_msg.pose.covariance[35] = rot_cov;
-
   if (fix3_isfirst) {
     fix3_isfirst = false;
   } else {
@@ -200,7 +217,6 @@ LLAXYZTransNode::LLAXYZTransNode()
   this->declare_parameter<std::string>("map_frame", "map");
   this->declare_parameter<double>("rot_cov", 1e9);
   this->declare_parameter<bool>("make_angle_from_movement", false);
-  this->declare_parameter<int>("epsg_code_num", -1);
   this->declare_parameter<std::string>("origin_pose", "");
   this->declare_parameter<std::string>("origin_quat", "");
   this->declare_parameter<std::string>("origin_quat_inv", "");
@@ -220,11 +236,7 @@ LLAXYZTransNode::LLAXYZTransNode()
   this->get_parameter("rot_cov", rot_cov);
   this->get_parameter("make_angle_from_movement", make_angle_from_movement);
 
-  if (epsg_code_num != -1) {
-    l_u_transformer.set_epsg_code(epsg_code_num);
-  }
-
-  fix_xyz_trans::LatLonAlt origin_latlonalt_;
+  LatLonAlt origin_latlonalt_;
   Eigen::Vector4d origin_quat_(0.0, 0.0, 0.0, 1.0);
   double qx, qy, qz, qw;
 
@@ -258,7 +270,10 @@ LLAXYZTransNode::LLAXYZTransNode()
     }
   }
 
-  l_u_transformer.set_origin(origin_latlonalt_, origin_quat_);
+  lla_xyz_transformer.set_origin(origin_latlonalt_, origin_quat_);
+  DEBUG_PRINT(origin_latlonalt_.latitude);
+  DEBUG_PRINT(origin_latlonalt_.longitude);
+  DEBUG_PRINT(origin_latlonalt_.altitude);
 
   // Publishers
   odom_pub0 = this->create_publisher<nav_msgs::msg::Odometry>(pub_odom_topic0, 10);

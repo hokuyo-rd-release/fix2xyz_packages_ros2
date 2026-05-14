@@ -1,5 +1,5 @@
-#ifndef LATLON_UTM_TRANS_NODE_HPP
-#define LATLON_UTM_TRANS_NODE_HPP
+#ifndef FIX_XYZ_TRANS_NODE
+#define FIX_XYZ_TRANS_NODE
 
 #include <cmath>
 #include <memory>
@@ -32,7 +32,7 @@ public:
 
 private:
   // 変換器とTF
-  LLAXYZTrans l_u_transformer;
+  LLAXYZTrans lla_xyz_transformer;
   tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener;
 
@@ -65,7 +65,6 @@ private:
   std::string origin_quat_str;
   std::string map_frame;
 
-  int epsg_code_num;
   double rot_cov;
   bool make_angle_from_movement;
 

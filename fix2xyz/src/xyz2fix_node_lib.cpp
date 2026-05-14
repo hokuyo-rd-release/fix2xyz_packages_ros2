@@ -30,7 +30,7 @@ void XYZLLATransNode::odom_callback1(const nav_msgs::msg::Odometry::SharedPtr ms
   pose.orientation << pose_on_map.orientation.x, pose_on_map.orientation.y,
                       pose_on_map.orientation.z, pose_on_map.orientation.w;
 
-  lla_with_ori = l_u_transformer.get_latlonalt_from_xyz(pose);
+  lla_with_ori = lla_xyz_transformer.get_latlonalt_from_xyz(pose);
 
   fix_msg.header = msg->header;
   fix_msg.header.frame_id = "";
@@ -59,7 +59,7 @@ void XYZLLATransNode::pose_callback2(const geometry_msgs::msg::PoseStamped::Shar
 
   sensor_msgs::msg::NavSatFix ret_msg;
   Eigen::Vector3d xyz;
-  fix_xyz_trans::LatLonAlt latlonalt;
+  LatLonAlt latlonalt;
 
   geometry_msgs::msg::TransformStamped transformStamped;
   try {
@@ -74,7 +74,7 @@ void XYZLLATransNode::pose_callback2(const geometry_msgs::msg::PoseStamped::Shar
   tf2::doTransform(msg->pose, pose_on_map, transformStamped);
 
   xyz << pose_on_map.position.x, pose_on_map.position.y, pose_on_map.position.z;
-  latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
+  latlonalt = lla_xyz_transformer.get_latlonalt_from_xyz(xyz);
 
   ret_msg.header = msg->header;
   ret_msg.header.frame_id = "";
@@ -93,7 +93,7 @@ void XYZLLATransNode::posecov_callback3(const geometry_msgs::msg::PoseWithCovari
 
   sensor_msgs::msg::NavSatFix ret_msg;
   Eigen::Vector3d xyz;
-  fix_xyz_trans::LatLonAlt latlonalt;
+  LatLonAlt latlonalt;
 
   geometry_msgs::msg::TransformStamped transformStamped;
   try {
@@ -108,7 +108,7 @@ void XYZLLATransNode::posecov_callback3(const geometry_msgs::msg::PoseWithCovari
   tf2::doTransform(msg->pose.pose, pose_on_map, transformStamped);
 
   xyz << pose_on_map.position.x, pose_on_map.position.y, pose_on_map.position.z;
-  latlonalt = l_u_transformer.get_latlonalt_from_xyz(xyz);
+  latlonalt = lla_xyz_transformer.get_latlonalt_from_xyz(xyz);
 
   ret_msg.header = msg->header;
   ret_msg.header.frame_id = "";
@@ -141,7 +141,6 @@ XYZLLATransNode::XYZLLATransNode()
   this->declare_parameter<std::string>("pub_fix_topic3", "fix/from_posecov3");
 
   this->declare_parameter<std::string>("map_frame", "map");
-  this->declare_parameter<int>("epsg_code_num", -1);
   this->declare_parameter<std::string>("origin_pose", "");
   this->declare_parameter<std::string>("origin_quat", "");
   this->declare_parameter<std::string>("origin_quat_inv", "");
@@ -156,13 +155,7 @@ XYZLLATransNode::XYZLLATransNode()
   this->get_parameter("pub_fix_topic3", pub_fix_topic3);
 
   this->get_parameter("map_frame", map_frame);
-  this->get_parameter("epsg_code_num", epsg_code_num);
-
-  if(epsg_code_num != -1) {
-    l_u_transformer.set_epsg_code(epsg_code_num);
-  }
-
-  fix_xyz_trans::LatLonAlt origin_latlonalt_;
+  LatLonAlt origin_latlonalt_;
   Eigen::Vector4d origin_quat_;
   double qx, qy, qz, qw;
 
@@ -194,7 +187,7 @@ XYZLLATransNode::XYZLLATransNode()
     origin_quat_.normalize();
   }
 
-  l_u_transformer.set_origin(origin_latlonalt_, origin_quat_);
+  lla_xyz_transformer.set_origin(origin_latlonalt_, origin_quat_);
 
   // Subscribers
   odom_sub1 = this->create_subscription<nav_msgs::msg::Odometry>(
