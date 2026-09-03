@@ -29,8 +29,17 @@ void LLAUTMTrans::set_coord(const std::string& src_crs, const std::string& dst_c
 }
 
 int LLAUTMTrans::judge_utm_zone(double longitude){
-    //経度を6で割って切り上げ.
-    int zone = (int)(longitude + 180.0 + 5 )/6;
+    //範囲が[-180, 180)になるように修正する.
+    double lon = longitude;
+    while(lon < -180.0){
+        lon += 360;
+    }
+    while(lon >= 180.0){
+        lon -= 360;
+    }
+
+    // int型キャストにより (経度+180)/6 の切り下げ ⇒ +1で切り上げ.
+    int zone = static_cast<int>((lon + 180.0) / 6.0) + 1;
     return zone;
 }
 
