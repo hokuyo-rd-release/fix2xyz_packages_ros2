@@ -59,6 +59,7 @@ void LLAXYZTransNode::fix_callback1(const fix_msgs::msg::FixWithOrientation::Sha
   DEBUG_PRINT(debug_msg);
 
   const auto& fix_msg = msg->fix;
+  fix1_monitor->onReceive(fix_msg.header.stamp);
   nav_msgs::msg::Odometry ret_msg;
   fix_xyz_trans::Pose pose;
   fix_xyz_trans::LLAWithOrientation lla_with_ori;
@@ -93,7 +94,35 @@ void LLAXYZTransNode::fix_callback1(const fix_msgs::msg::FixWithOrientation::Sha
   ret_msg.pose.covariance[28] = rot_cov;
   ret_msg.pose.covariance[35] = rot_cov;
 
+  // 変換結果の NaN と位置の飛びを記録する (出力内容は変えない)
+  const auto& p = ret_msg.pose.pose.position;
+  const auto& q = ret_msg.pose.pose.orientation;
+  if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z) ||
+      !std::isfinite(q.x) || !std::isfinite(q.y) || !std::isfinite(q.z) || !std::isfinite(q.w)) {
+    ++fix1_n_invalid;
+    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+      "変換結果に NaN/Inf: in lat=%f lon=%f alt=%f quat=(%f, %f, %f, %f) -> out pos=(%f, %f, %f) quat=(%f, %f, %f, %f)",
+      fix_msg.latitude, fix_msg.longitude, fix_msg.altitude,
+      msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w,
+      p.x, p.y, p.z, q.x, q.y, q.z, q.w);
+  } else if (fix1_out_valid) {
+    const auto& lp = last_fix1_out.pose.pose.position;
+    const double jump = std::hypot(p.x - lp.x, p.y - lp.y);
+    if (jump > jump_threshold) {
+      ++fix1_n_jump;
+      RCLCPP_WARN(this->get_logger(),
+        "出力位置が %.2fm 飛んだ: (%.3f, %.3f) -> (%.3f, %.3f) stamp %.3f -> %.3f",
+        jump, lp.x, lp.y, p.x, p.y,
+        rclcpp::Time(last_fix1_out.header.stamp).seconds(), rclcpp::Time(ret_msg.header.stamp).seconds());
+    }
+  }
+  if (std::isfinite(p.x) && std::isfinite(p.y)) {
+    last_fix1_out = ret_msg;
+    fix1_out_valid = true;
+  }
+
   odom_pub1->publish(ret_msg);
+  ++fix1_published;
 
   debug_msg = "published odometry_msg from fix_msg1";
   DEBUG_PRINT(debug_msg);
@@ -220,6 +249,10 @@ LLAXYZTransNode::LLAXYZTransNode()
   this->declare_parameter<std::string>("origin_pose", "");
   this->declare_parameter<std::string>("origin_quat", "");
   this->declare_parameter<std::string>("origin_quat_inv", "");
+  this->declare_parameter<double>("diag_period", 1.0);
+  // 最も遅い GNSS 系のトピックが 1Hz なので、1Hz で 2 回続けて欠けたら途絶とみなす
+  this->declare_parameter<double>("stall_timeout", 3.0);
+  this->declare_parameter<double>("jump_threshold", 5.0);
 
   // Get parameters
   this->get_parameter("sub_fix_topic0", sub_fix_topic0);
@@ -294,6 +327,32 @@ LLAXYZTransNode::LLAXYZTransNode()
   fix1_isfirst = true;
   fix2_isfirst = true;
   fix3_isfirst = true;
+
+  const double diag_period = this->get_parameter("diag_period").as_double();
+  const double stall_timeout = this->get_parameter("stall_timeout").as_double();
+  this->get_parameter("jump_threshold", jump_threshold);
+  fix1_monitor = std::make_unique<RsfChainMonitor>(this, sub_fix_topic1, stall_timeout);
+  diag_timer = this->create_wall_timer(
+    std::chrono::duration<double>(diag_period), std::bind(&LLAXYZTransNode::diag_callback, this));
+  RCLCPP_INFO(this->get_logger(),
+    "起動: %s -> %s (origin=%s, diag_period=%.2fs, stall_timeout=%.2fs, jump_threshold=%.1fm)",
+    sub_fix_topic1.c_str(), pub_odom_topic1.c_str(), origin_pose_str.c_str(),
+    diag_period, stall_timeout, jump_threshold);
+}
+
+void LLAXYZTransNode::diag_callback() {
+  fix1_monitor->checkStall();
+  const std::string summary = fix1_monitor->summarize();
+  if (!fix1_out_valid) {
+    RCLCPP_INFO(this->get_logger(), "%s | published=%lu invalid=%lu",
+      summary.c_str(), static_cast<unsigned long>(fix1_published), static_cast<unsigned long>(fix1_n_invalid));
+    return;
+  }
+  const auto& p = last_fix1_out.pose.pose.position;
+  const auto& q = last_fix1_out.pose.pose.orientation;
+  RCLCPP_INFO(this->get_logger(), "%s | published=%lu invalid=%lu jump=%lu x=%.3f y=%.3f z=%.3f yaw=%.1fdeg",
+    summary.c_str(), static_cast<unsigned long>(fix1_published), static_cast<unsigned long>(fix1_n_invalid),
+    static_cast<unsigned long>(fix1_n_jump), p.x, p.y, p.z, rsfChainYaw(q.x, q.y, q.z, q.w) * 180.0 / M_PI);
 }
 
 LLAXYZTransNode::~LLAXYZTransNode() {}
