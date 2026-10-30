@@ -16,6 +16,7 @@
 
 #include <proj.h>
 #include "fix_xyz_transform.h"
+#include "rsf_chain_monitor.h"
 
 using namespace fix_xyz_trans;
 
@@ -75,11 +76,22 @@ private:
   geometry_msgs::msg::Pose last_fix2_pose;
   geometry_msgs::msg::Pose last_fix3_pose;
 
+  // fix_callback1 (rsf_fix 系統) の受信状況のログ出力
+  std::unique_ptr<RsfChainMonitor> fix1_monitor;
+  rclcpp::TimerBase::SharedPtr diag_timer;
+  double jump_threshold;
+  bool fix1_out_valid = false;
+  nav_msgs::msg::Odometry last_fix1_out;
+  uint64_t fix1_published = 0;
+  uint64_t fix1_n_invalid = 0;
+  uint64_t fix1_n_jump = 0;
+
   // コールバック関数
   void fix_callback0(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
   void fix_callback1(const fix_msgs::msg::FixWithOrientation::SharedPtr msg);
   void fix_callback2(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
   void fix_callback3(const sensor_msgs::msg::NavSatFix::SharedPtr msg);
+  void diag_callback();
 };
 
 #endif  // LATLON_UTM_TRANS_NODE_HPP
